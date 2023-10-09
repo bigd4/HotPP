@@ -5,11 +5,12 @@ from torch.utils.data import DataLoader
 from tensornet.data import ASEData, ASEDBData, atoms_collate_fn
 
 
-def eval(model, data_loader, properties):
+def eval(model, data_loader, properties, device):
     output = {prop: [] for prop in properties}
     target = {prop: [] for prop in properties}
     n_atoms = []
     for batch_data in data_loader:
+        batch_data = {key: value.to(device) for key, value in batch_data.items()}
         model(batch_data, properties, create_graph=False)
         n_atoms.extend(batch_data['n_atoms'].detach().cpu().numpy())
         for prop in properties:
@@ -49,7 +50,7 @@ def main(*args, modelfile='model.pt', indices=None, device='cpu', datafile='data
                              collate_fn=atoms_collate_fn,
                              num_workers=num_workers,
                              pin_memory=pin_memory)
-    eval(model, data_loader, properties)
+    eval(model, data_loader, properties, device)
 
 if __name__ == "__main__":
     main()
