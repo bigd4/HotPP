@@ -42,12 +42,16 @@ class AtomicModule(nn.Module):
         #######################################
         if 'dipole' in output_tensors:
             batch_data['dipole_p'] = _scatter_add(output_tensors['dipole'], batch_data['batch'])
-        if 'polar_diagonal' in output_tensors:
-            polar_diagonal = _scatter_add(output_tensors['polar_diagonal'], batch_data['batch'])
+        if 'polar_00' in output_tensors:
+            polar_00 = _scatter_add(output_tensors['polar_00'], batch_data['batch'])
+            polar_11 = _scatter_add(output_tensors['polar_11'], batch_data['batch'])
+            polar_22 = _scatter_add(output_tensors['polar_22'], batch_data['batch'])
             polar_off_diagonal = _scatter_add(output_tensors['polar_off_diagonal'], batch_data['batch'])
-            # polar_off_diagonal = polar_off_diagonal + polar_off_diagonal.transpose(1, 2)
-            shape = polar_off_diagonal.shape
-            batch_data['polarizability_p'] = polar_diagonal.unsqueeze(-1).unsqueeze(-1) * torch.eye(shape[1], device=polar_diagonal.device).expand(*shape) + polar_off_diagonal
+            polar = polar_off_diagonal + polar_off_diagonal.transpose(1, 2)
+            polar[:, 0, 0] += polar_00
+            polar[:, 1, 1] += polar_11
+            polar[:, 2, 2] += polar_22
+            batch_data['polarizability_p'] = polar 
 
         if 'direct_forces' in output_tensors:
             batch_data['forces_p'] = output_tensors['direct_forces'] * self.std

@@ -130,7 +130,9 @@ def get_model(p_dict, elements, mean, std, n_neighbor):
     if "dipole" in target:
         target_way["dipole"] = 1
     if "polarizability" in target:
-        target_way["polar_diagonal"] = 0
+        target_way["polar_00"] = 0
+        target_way["polar_11"] = 0
+        target_way["polar_22"] = 0
         target_way["polar_off_diagonal"] = 2
     if "direct_forces" in target:
         assert "forces" not in target_way, "Cannot learn forces and direct_forces at the same time"

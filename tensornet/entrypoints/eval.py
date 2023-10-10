@@ -28,6 +28,7 @@ def main(*args, modelfile='model.pt', indices=None, device='cpu', datafile='data
          format=None, properties=["energy", "forces"], batchsize=32, num_workers=4, pin_memory=True,
          **kwargs):
     model = torch.load(modelfile, map_location=device)
+    model.eval()
     cutoff = float(model.cutoff.detach().cpu().numpy())
     if indices is not None:
         indices = np.loadtxt(indices, dtype=int)
