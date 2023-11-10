@@ -3,13 +3,14 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tensornet.data import ASEData, ASEDBData, atoms_collate_fn
+from tqdm import tqdm
 
 
 def eval(model, data_loader, properties, device):
     output = {prop: [] for prop in properties}
     target = {prop: [] for prop in properties}
     n_atoms = []
-    for batch_data in data_loader:
+    for batch_data in tqdm(data_loader):
         batch_data = {key: value.to(device) for key, value in batch_data.items()}
         model(batch_data, properties, create_graph=False)
         n_atoms.extend(batch_data['n_atoms'].detach().cpu().numpy())
