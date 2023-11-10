@@ -24,6 +24,7 @@ class MiaoNet(AtomicModule):
                  std             : float=1.,
                  norm_factor     : float=1.,
                  mode            : str='normal',
+                 bi              : bool=True,
                  ):
         super().__init__(mean=mean, std=std)
         self.register_buffer("norm_factor", torch.tensor(norm_factor).float())
@@ -45,14 +46,17 @@ class MiaoNet(AtomicModule):
                                mode=mode) for i in range(n_layers)])
         self.readout_layer = ReadoutLayer(n_dim=hidden_nodes[-1],
                                           target_way=target_way,
-                                          activate_fn=activate_fn)
+                                          activate_fn=activate_fn,
+                                          bi=bi,
+                                          e_dim=embedding_layer.n_channel)
 
     def calculate(self,
                   batch_data : Dict[str, torch.Tensor],
                   ) -> Dict[str, torch.Tensor]:
         find_distances(batch_data)
-        output_tensors = {0: self.embedding_layer(batch_data=batch_data)}
+        emb = self.embedding_layer(batch_data=batch_data)
+        output_tensors = {0: emb}
         for son_equivalent_layer in self.son_equivalent_layers:
             output_tensors = son_equivalent_layer(output_tensors, batch_data)
-        output_tensors = self.readout_layer(output_tensors)
+        output_tensors = self.readout_layer(output_tensors, emb)
         return output_tensors

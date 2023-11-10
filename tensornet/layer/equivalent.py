@@ -6,7 +6,7 @@
 
 import torch
 from torch import nn
-from typing import Dict, Callable, Union
+from typing import Dict, Callable, Union, Optional
 from .base import RadialLayer, CutoffLayer
 from .activate import TensorActivateDict
 from ..utils import find_distances, find_moment, _scatter_add, _aggregate
@@ -20,6 +20,7 @@ from ..utils import find_distances, find_moment, _scatter_add, _aggregate
 # coordinate: [n_atoms, n_dim]
 
 __all__ = ["TensorLinear",
+           "TensorBiLinear",
            "TensorAggregateLayer",
            "SelfInteractionLayer",
            "NonLinearLayer",
@@ -41,6 +42,7 @@ class TensorLinear(nn.Module):
 
     def forward(self, 
                 input_tensor: torch.Tensor,   # [n_batch, n_channel, n_dim, n_dim, ...]
+                emb         : Optional[torch.Tensor]=None,
                 ):
         way = len(input_tensor.shape) - 2
         if way == 0:
@@ -48,6 +50,33 @@ class TensorLinear(nn.Module):
         else:
             input_tensor = torch.transpose(input_tensor, 1, -1)
             output_tensor = self.linear(input_tensor)
+            output_tensor = torch.transpose(output_tensor, 1, -1)
+        return output_tensor
+
+
+class TensorBiLinear(nn.Module):
+    """
+    Linear layer for tensors with shape [n_batch, n_channel, n_dim, n_dim, ...]
+    """
+    def __init__(self,
+                 input_dim   : int,
+                 emb_dim     : int,
+                 output_dim  : int,
+                 bias        : bool=False,
+                 ) -> None:
+        super().__init__()
+        self.linear = nn.Bilinear(input_dim, emb_dim, output_dim, bias=bias)
+
+    def forward(self, 
+                input_tensor: torch.Tensor,   # [n_batch, n_channel, n_dim, n_dim, ...]
+                emb:          torch.Tensor,   # [n_batch, n_channel]
+                ):
+        way = len(input_tensor.shape) - 2
+        if way == 0:
+            output_tensor = self.linear(input_tensor, emb)
+        else:
+            input_tensor = torch.transpose(input_tensor, 1, -1)
+            output_tensor = self.linear(input_tensor, emb)
             output_tensor = torch.transpose(output_tensor, 1, -1)
         return output_tensor
 

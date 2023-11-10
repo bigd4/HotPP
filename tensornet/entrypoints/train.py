@@ -151,7 +151,8 @@ def get_model(p_dict, elements, mean, std, n_neighbor):
                     mean=mean,
                     std=std,
                     norm_factor=n_neighbor,
-                    mode=model_dict['mode']).to(p_dict['device'])
+                    mode=model_dict['mode']
+                    bi=model_dict['bi']).to(p_dict['device'])
     return model
 
 
@@ -175,6 +176,7 @@ def main(*args, input_file='input.yaml', load_model=None, load_checkpoint=None, 
         },
         "Model": {
             "mode": "normal",
+            "bi": False,
             "activateFn": "silu",
             "nEmbedding": 64,
             "nLayer": 5,
