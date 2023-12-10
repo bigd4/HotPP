@@ -5,6 +5,7 @@ from .base import AtomicModule
 from ..layer import SOnEquivalentLayer, EmbeddingLayer, RadialLayer, ReadoutLayer, CutoffLayer
 from ..utils import expand_para, find_distances
 
+# TODO: std and mean should be move to data prepare?
 
 class MiaoNet(AtomicModule):
     """
@@ -25,7 +26,9 @@ class MiaoNet(AtomicModule):
                  norm_factor     : float=1.,
                  mode            : str='normal',
                  ):
-        super().__init__(mean=mean, std=std)
+        super().__init__()
+        self.register_buffer("mean", torch.tensor(mean).float())
+        self.register_buffer("std", torch.tensor(std).float())
         self.register_buffer("norm_factor", torch.tensor(norm_factor).float())
         self.embedding_layer = embedding_layer
         max_r_way = expand_para(max_r_way, n_layers)
@@ -55,4 +58,6 @@ class MiaoNet(AtomicModule):
         for son_equivalent_layer in self.son_equivalent_layers:
             output_tensors = son_equivalent_layer(output_tensors, batch_data)
         output_tensors = self.readout_layer(output_tensors)
+        if 'site_energy' in output_tensors:
+            output_tensors['site_energy'] = output_tensors['site_energy'] * self.std + self.mean
         return output_tensors

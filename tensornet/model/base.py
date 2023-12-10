@@ -6,14 +6,6 @@ from tensornet.utils import _scatter_add, find_distances, add_scaling
 
 class AtomicModule(nn.Module):
 
-    def __init__(self,
-                 mean  : float=0.,
-                 std   : float=1.,
-                 ) -> None:
-        super().__init__()
-        self.register_buffer("mean", torch.tensor(mean).float())
-        self.register_buffer("std", torch.tensor(std).float())
-
     def forward(self,
                 batch_data   : Dict[str, torch.Tensor],
                 properties   : Optional[List[str]]=None,
@@ -33,12 +25,6 @@ class AtomicModule(nn.Module):
             batch_data['scaling'].requires_grad_()
             add_scaling(batch_data)
         output_tensors = self.calculate(batch_data)
-        if 'site_energy' in output_tensors:
-            site_energy = output_tensors['site_energy'] * self.std + self.mean
-        #######################################
-        # for torch.jit.script 
-        else:
-            site_energy = batch_data['n_atoms']
         #######################################
         if 'dipole' in output_tensors:
             batch_data['dipole_p'] = _scatter_add(output_tensors['dipole'], batch_data['batch'])
@@ -52,7 +38,12 @@ class AtomicModule(nn.Module):
             polar[:, 1, 1] += polar_11
             polar[:, 2, 2] += polar_22
             batch_data['polarizability_p'] = polar 
-
+        if 'site_energy' in output_tensors:
+            site_energy = output_tensors['site_energy']
+        #######################################
+        # for torch.jit.script
+        else:
+            site_energy = batch_data['n_atoms']
         if 'direct_forces' in output_tensors:
             batch_data['forces_p'] = output_tensors['direct_forces'] * self.std
         if ('site_energy' in properties) or ('energies' in properties):
@@ -87,3 +78,17 @@ class AtomicModule(nn.Module):
     def calculate(self):
         raise NotImplementedError(f"{self.__class__.__name__} must have 'calculate'!")
 
+
+# Only support energy model now!
+class MultiAtomicModule(AtomicModule):
+    def __init__(self, models: List[AtomicModule]) -> None:
+        super().__init__()
+        self.models = models
+
+    def calculate(self,
+                  batch_data : Dict[str, torch.Tensor],
+                  ) -> Dict[str, torch.Tensor]:
+        output_tensor = {'site_energy': torch.zeros_like(batch_data['atomic_numbers'])}
+        for model in self.models:
+            output_tensor['site_energy'] += model.calculate(batch_data)['site_energy']
+        return output_tensor
