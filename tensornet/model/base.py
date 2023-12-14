@@ -81,14 +81,14 @@ class AtomicModule(nn.Module):
 
 # Only support energy model now!
 class MultiAtomicModule(AtomicModule):
-    def __init__(self, models: List[AtomicModule]) -> None:
+    def __init__(self, models: Dict[str, AtomicModule]) -> None:
         super().__init__()
-        self.models = models
+        self.models = nn.ModuleDict(models)
 
     def calculate(self,
                   batch_data : Dict[str, torch.Tensor],
                   ) -> Dict[str, torch.Tensor]:
-        output_tensor = {'site_energy': torch.zeros_like(batch_data['atomic_numbers'])}
-        for model in self.models:
+        output_tensor = {'site_energy': torch.zeros_like(batch_data['atomic_number'], dtype=batch_data['coordinate'].dtype)}
+        for name, model in self.models.items():
             output_tensor['site_energy'] += model.calculate(batch_data)['site_energy']
         return output_tensor

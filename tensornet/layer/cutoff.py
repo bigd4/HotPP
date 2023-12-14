@@ -10,7 +10,7 @@ __all__ = ["CosineCutoff",
 
 
 class CosineCutoff(CutoffLayer):
-    def forward(self, 
+    def forward(self,
                 distances : torch.Tensor,
                 ) -> torch.Tensor:
         cutoffs = 0.5 * (torch.cos(distances * np.pi / self.cutoff) + 1.0)
@@ -45,14 +45,14 @@ class SmoothCosineCutoff(CutoffLayer):
 #         return cutoffs
 
 class PolynomialCutoff(CutoffLayer):
-    def __init__(self, 
+    def __init__(self,
                  cutoff   : float,
                  p        : int,
                  ) -> None:
         super(PolynomialCutoff, self).__init__(cutoff)
         self.register_buffer("p", torch.tensor(p).float())
 
-    def forward(self, 
+    def forward(self,
                 distances : torch.Tensor,
                 ) -> torch.Tensor:
         x = distances / self.cutoff

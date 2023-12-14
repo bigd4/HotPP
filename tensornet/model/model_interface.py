@@ -75,17 +75,25 @@ class LitAtomicModule(pl.LightningModule):
         opt_dict = self.p_dict["Train"]["Optimizer"]
         decay_interactions = {}
         no_decay_interactions = {}
-        for name, param in self.model.son_equivalent_layers.named_parameters():
-            if "weight" in name:
-                decay_interactions[name] = param
+        embedding = {}
+        readout = {}
+        for name, param in self.model.named_parameters():
+            if "son_equivalent_layers" in name:
+                if "weight" in name:
+                    decay_interactions[name] = param
+                else:
+                    no_decay_interactions[name] = param
             else:
-                no_decay_interactions[name] = param
+                if "embedding" in name:
+                    embedding[name] = param
+                if "readout" in name:
+                    readout[name] = param
 
         param_options = dict(
             params=[
                 {
                     "name": "embedding",
-                    "params": self.model.embedding_layer.parameters(),
+                    "params": list(embedding.values()),
                     "weight_decay": 0.0,
                 },
                 {
@@ -100,7 +108,7 @@ class LitAtomicModule(pl.LightningModule):
                 },
                 {
                     "name": "readouts",
-                    "params": self.model.readout_layer.parameters(),
+                    "params": list(readout.values()),
                     "weight_decay": 0.0,
                 },
             ],
