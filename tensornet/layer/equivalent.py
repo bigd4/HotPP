@@ -9,7 +9,7 @@ from torch import nn
 from typing import Dict, Callable, Union, Optional
 from .base import RadialLayer, CutoffLayer
 from .activate import TensorActivateDict
-from ..utils import find_distances, find_moment, _scatter_add, _aggregate
+from ..utils import find_distances, find_moment, _scatter_add, _aggregate, expand_to
 
 
 # input_tensors be like:
@@ -66,15 +66,16 @@ class TensorBiLinear(nn.Module):
         super().__init__()
         self.linear = nn.Bilinear(input_dim, emb_dim, output_dim, bias=bias)
 
-    def forward(self, 
+    def forward(self,
                 input_tensor: torch.Tensor,   # [n_batch, n_channel, n_dim, n_dim, ...]
-                emb:          torch.Tensor,   # [n_batch, n_channel]
+                emb:          torch.Tensor,   # [n_batch, n_emb_channel]
                 ):
         way = len(input_tensor.shape) - 2
         if way == 0:
             output_tensor = self.linear(input_tensor, emb)
         else:
             input_tensor = torch.transpose(input_tensor, 1, -1)
+            emb = expand_to(emb, way + 2, dim=1).expand([*input_tensor.shape[:-1], -1])
             output_tensor = self.linear(input_tensor, emb)
             output_tensor = torch.transpose(output_tensor, 1, -1)
         return output_tensor
